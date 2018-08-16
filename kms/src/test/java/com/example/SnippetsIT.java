@@ -1,15 +1,17 @@
 /*
- * Copyright (c) 2017 Google Inc.
+ * Copyright 2017 Google Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.example;
@@ -93,7 +95,7 @@ public class SnippetsIT {
     // Create a CryptoKeyVersion and set it as primary.
     Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
     Matcher matcher = Pattern.compile(
-        ".*cryptoKeyVersions/(\\d+)\",\"state\":\"ENABLED\".*",
+        ".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
         Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
     assertTrue(matcher.matches());
 
@@ -168,7 +170,7 @@ public class SnippetsIT {
     Snippets.listCryptoKeyVersions(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
 
     assertThat(bout.toString()).containsMatch(String.format(
-        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/\\d+\",\"state\":\"ENABLED\"",
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/\\d+\",.*\"state\":\"ENABLED\"",
         KEY_RING_ID, CRYPTO_KEY_ID));
   }
 
@@ -176,22 +178,45 @@ public class SnippetsIT {
   public void disableCryptoKeyVersion_disables() throws Exception {
     Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
 
-    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",\"state\":\"ENABLED\".*",
+    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
         Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
     assertTrue(matcher.matches());
     String version = matcher.group(1);
 
     Snippets.disableCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
     assertThat(bout.toString()).containsMatch(String.format(
-        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",\"state\":\"DISABLED\"",
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"DISABLED\"",
         KEY_RING_ID, CRYPTO_KEY_ID, version));
+  }
+
+  @Test
+  public void enableCryptoKeyVersion_enables() throws Exception {
+    Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
+
+    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
+        Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
+    assertTrue(matcher.matches());
+    String version = matcher.group(1);
+
+    // Disable the new key version
+    Snippets.disableCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
+    assertThat(bout.toString()).containsMatch(String.format(
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"DISABLED\"",
+        KEY_RING_ID, CRYPTO_KEY_ID, version));
+
+    // Enable the now-disabled key version
+    Snippets.enableCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
+    assertThat(bout.toString()).containsMatch(String.format(
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"ENABLED\"",
+        KEY_RING_ID, CRYPTO_KEY_ID, version));
+
   }
 
   @Test
   public void destroyCryptoKeyVersion_destroys() throws Exception {
     Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
 
-    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",\"state\":\"ENABLED\".*",
+    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
         Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
     assertTrue(matcher.matches());
 
@@ -200,7 +225,34 @@ public class SnippetsIT {
     Snippets.destroyCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
 
     assertThat(bout.toString()).containsMatch(String.format(
-        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",\"state\":\"DESTROY_SCHEDULED\"",
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"DESTROY_SCHEDULED\"",
+        KEY_RING_ID, CRYPTO_KEY_ID, version));
+  }
+
+
+  @Test
+  public void restoreCryptoKeyVersion_restores() throws Exception {
+    Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
+
+    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
+        Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
+    assertTrue(matcher.matches());
+
+    String version = matcher.group(1);
+
+    // Only key versions schedule for destruction are restorable, so schedule this key
+    // version for destruction.
+    Snippets.destroyCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
+
+    assertThat(bout.toString()).containsMatch(String.format(
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"DESTROY_SCHEDULED\"",
+        KEY_RING_ID, CRYPTO_KEY_ID, version));
+
+    // Now restore the key version.
+    Snippets.restoreCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID, version);
+
+    assertThat(bout.toString()).containsMatch(String.format(
+        "keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s\",.*\"state\":\"DISABLED\"",
         KEY_RING_ID, CRYPTO_KEY_ID, version));
   }
 
@@ -210,7 +262,7 @@ public class SnippetsIT {
     // caching. So we test that the call was successful.
     Snippets.createCryptoKeyVersion(PROJECT_ID, LOCATION_ID, KEY_RING_ID, CRYPTO_KEY_ID);
 
-    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",\"state\":\"ENABLED\".*",
+    Matcher matcher = Pattern.compile(".*cryptoKeyVersions/(\\d+)\",.*\"state\":\"ENABLED\".*",
         Pattern.DOTALL | Pattern.MULTILINE).matcher(bout.toString().trim());
     assertTrue(matcher.matches());
 

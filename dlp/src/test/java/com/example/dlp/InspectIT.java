@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,11 @@
 
 package com.example.dlp;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.PrintStream;
 import org.junit.After;
 import org.junit.Before;
@@ -29,12 +29,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
+// CHECKSTYLE OFF: AbbreviationAsWordInName
 public class InspectIT {
+  // CHECKSTYLE ON: AbbreviationAsWordInName
+
   private ByteArrayOutputStream bout;
   private PrintStream out;
 
   // Update to Google Cloud Storage path containing test.txt
   private String bucketName = System.getenv("GOOGLE_CLOUD_PROJECT") + "/dlp";
+  private String topicId = "dlp-tests";
+  private String subscriptionId = "dlp-test";
 
   // Update to Google Cloud Datastore Kind containing an entity
   // with phone number and email address properties.
@@ -44,7 +49,7 @@ public class InspectIT {
   public void setUp() {
     bout = new ByteArrayOutputStream();
     out = new PrintStream(bout);
-    System.setOut(out); // TODO(b/64541432) DLP currently doesn't support GOOGLE DEFAULT AUTH
+    System.setOut(out);
     assertNotNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
   }
 
@@ -52,49 +57,134 @@ public class InspectIT {
   public void testStringInspectionReturnsInfoTypes() throws Exception {
     String text =
         "\"My phone number is (234) 456-7890 and my email address is gary@somedomain.com\"";
-    Inspect.main(new String[] {"-s", text});
+    Inspect.main(new String[] {"-s", text, "-infoTypes", "PHONE_NUMBER", "EMAIL_ADDRESS"});
     String output = bout.toString();
-    assertTrue(output.contains("PHONE_NUMBER"));
-    assertTrue(output.contains("EMAIL_ADDRESS"));
+
+    assertThat(output, containsString("PHONE_NUMBER"));
+    assertThat(output, containsString("EMAIL_ADDRESS"));
+  }
+
+  @Test
+  public void testStringInspectionReturnsCustomInfoTypes() throws Exception {
+    String text =
+        "\"My phone number is (234) 456-7890 and my email address is gary@somedomain.com\"";
+    Inspect.main(
+        new String[] {
+            "-s",
+            text,
+            "-customDictionaries",
+            "gary@somedomain.com",
+            "-customRegexes",
+            "\\(\\d{3}\\) \\d{3}-\\d{4}"
+        });
+    String output = bout.toString();
+
+    assertThat(output, containsString("CUSTOM_DICTIONARY_0"));
+    assertThat(output, containsString("CUSTOM_REGEX_0"));
   }
 
   @Test
   public void testTextFileInspectionReturnsInfoTypes() throws Exception {
-    ClassLoader classLoader = getClass().getClassLoader();
-    File file = new File(classLoader.getResource("test.txt").getFile());
-    Inspect.main(new String[] {"-f", file.getAbsolutePath()});
+    Inspect.main(
+        new String[] {
+            "-f", "src/test/resources/test.txt", "-infoTypes", "PHONE_NUMBER", "EMAIL_ADDRESS"
+        });
     String output = bout.toString();
-    assertTrue(output.contains("PHONE_NUMBER"));
-    assertTrue(output.contains("EMAIL_ADDRESS"));
+    assertThat(output, containsString("PHONE_NUMBER"));
+    assertThat(output, containsString("EMAIL_ADDRESS"));
+  }
+
+  @Test
+  public void testTextFileInspectionReturnsCustomInfoTypes() throws Exception {
+    Inspect.main(
+        new String[] {
+            "-f",
+            "src/test/resources/test.txt",
+            "-customDictionaries",
+            "gary@somedomain.com",
+            "-customRegexes",
+            "\\(\\d{3}\\) \\d{3}-\\d{4}"
+        });
+    String output = bout.toString();
+    assertThat(output, containsString("CUSTOM_DICTIONARY_0"));
+    assertThat(output, containsString("CUSTOM_REGEX_0"));
   }
 
   @Test
   public void testImageFileInspectionReturnsInfoTypes() throws Exception {
-    ClassLoader classLoader = getClass().getClassLoader();
-    File file = new File(classLoader.getResource("test.png").getFile());
-    Inspect.main(new String[] {"-f", file.getAbsolutePath()});
+    Inspect.main(
+        new String[] {
+          "-f", "src/test/resources/test.png", "-infoTypes", "PHONE_NUMBER", "EMAIL_ADDRESS"
+        });
     String output = bout.toString();
-    assertTrue(output.contains("PHONE_NUMBER"));
-    assertTrue(output.contains("EMAIL_ADDRESS"));
+    assertThat(output, containsString("PHONE_NUMBER"));
+    assertThat(output, containsString("EMAIL_ADDRESS"));
   }
 
   // Requires that bucket by the specified name exists
   @Test
   public void testGcsFileInspectionReturnsInfoTypes() throws Exception {
-    Inspect.main(new String[] {"-gcs", "-bucketName", bucketName, "-fileName", "test.txt"});
+    Inspect.main(
+        new String[] {
+          "-gcs",
+          "-bucketName",
+          bucketName,
+          "-topicId",
+          topicId,
+          "-subscriptionId",
+          subscriptionId,
+          "-fileName",
+          "test.txt",
+          "-infoTypes",
+          "PHONE_NUMBER",
+          "EMAIL_ADDRESS"
+        });
     String output = bout.toString();
-    assertTrue(output.contains("PHONE_NUMBER"));
-    assertTrue(output.contains("EMAIL_ADDRESS"));
+    assertThat(output, containsString("PHONE_NUMBER"));
+    assertThat(output, containsString("EMAIL_ADDRESS"));
   }
 
-  // Requires  a Datastore kind containing an entity
+  // Requires a Datastore kind containing an entity
   // with phone number and email address properties.
   @Test
   public void testDatastoreInspectionReturnsInfoTypes() throws Exception {
-    Inspect.main(new String[] {"-ds", "-kind", datastoreKind});
+    Inspect.main(
+        new String[] {
+          "-ds",
+          "-kind",
+          datastoreKind,
+          "-topicId",
+          topicId,
+          "-subscriptionId",
+          subscriptionId,
+          "-infoTypes",
+          "PHONE_NUMBER",
+          "EMAIL_ADDRESS"
+        });
     String output = bout.toString();
-    assertTrue(output.contains("PHONE_NUMBER"));
-    assertTrue(output.contains("EMAIL_ADDRESS"));
+    assertThat(output, containsString("PHONE_NUMBER"));
+    assertThat(output, containsString("EMAIL_ADDRESS"));
+  }
+
+  @Test
+  public void testBigqueryInspectionReturnsInfoTypes() throws Exception {
+    Inspect.main(
+        new String[] {
+          "-bq",
+          "-datasetId",
+          "integration_tests_dlp",
+          "-topicId",
+          topicId,
+          "-subscriptionId",
+          subscriptionId,
+          "-tableId",
+          "harmful",
+          "-infoTypes",
+          "PHONE_NUMBER",
+          "EMAIL_ADDRESS"
+        });
+    String output = bout.toString();
+    assertThat(output, containsString("PHONE_NUMBER"));
   }
 
   @After

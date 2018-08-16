@@ -1,5 +1,9 @@
 # Cloud SQL sample for Google App Engine
 
+<a href="https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/GoogleCloudPlatform/java-docs-samples&page=editor&open_in_editor=appengine-java8/cloudsql/README.md">
+<img alt="Open in Cloud Shell" src ="http://gstatic.com/cloudssh/images/open-btn.png"></a>
+
+
 This sample demonstrates how to use [Cloud SQL](https://cloud.google.com/cloudsql/) on Google App
 Engine standard Java 8
 
@@ -30,7 +34,7 @@ Engine standard Java 8
 ## Running locally
 
 ```bash
-$ mvn clean appengine:run -DINSTANCE_CONNECTION_NAME=instanceConnectionName -Duser=root -Dpassword=myPassowrd -Ddatabase=myDatabase
+$ mvn clean appengine:run -DINSTANCE_CONNECTION_NAME=instanceConnectionName -Duser=root -Dpassword=myPassword -Ddatabase=myDatabase
 ```
 
 ## Deploying

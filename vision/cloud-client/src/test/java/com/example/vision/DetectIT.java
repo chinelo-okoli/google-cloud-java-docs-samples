@@ -1,22 +1,31 @@
 /*
-  Copyright 2016, Google, Inc.
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.example.vision;
 
 import static com.google.common.truth.Truth.assertThat;
+
+import com.google.api.gax.paging.Page;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobListOption;
+import com.google.cloud.storage.StorageOptions;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,26 +33,21 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-
 /** Tests for vision "Detect" sample. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("checkstyle:abbreviationaswordinname")
 public class DetectIT {
   private ByteArrayOutputStream bout;
   private PrintStream out;
-  private Detect app;
   private static final String PROJECT_ID = System.getenv("GOOGLE_CLOUD_PROJECT");
   private static final String BUCKET = PROJECT_ID;
+  private static final  String OUTPUT_PREFIX = "OCR_PDF_TEST_OUTPUT";
 
   @Before
   public void setUp() throws IOException {
     bout = new ByteArrayOutputStream();
     out = new PrintStream(bout);
     System.setOut(out);
-    app = new Detect();
   }
 
   @After
@@ -187,6 +191,7 @@ public class DetectIT {
     // Assert
     String got = bout.toString();
     assertThat(got).contains("adult: VERY_UNLIKELY");
+    assertThat(got).contains("racy: UNLIKELY");
   }
 
   @Test
@@ -198,6 +203,7 @@ public class DetectIT {
     // Assert
     String got = bout.toString();
     assertThat(got).contains("adult: VERY_UNLIKELY");
+    assertThat(got).contains("racy: UNLIKELY");
   }
 
   @Test
@@ -236,7 +242,8 @@ public class DetectIT {
 
     // Assert
     String got = bout.toString();
-    assertThat(got).contains("Palace");
+    assertThat(got).contains("History");
+    assertThat(got).contains("Best guess label: palace of fine arts");
   }
 
   @Test
@@ -247,7 +254,51 @@ public class DetectIT {
 
     // Assert
     String got = bout.toString();
-    assertThat(got).contains("Palace");
+    assertThat(got).contains("History");
+    assertThat(got).contains("Best guess label: palace of fine arts");
+  }
+
+  @Test
+  public void testDetectWebEntities() throws Exception {
+    // Act
+    String[] args = {"web-entities", "./resources/city.jpg"};
+    Detect.argsHelper(args, out);
+
+    // Assert
+    String got = bout.toString();
+    assertThat(got).doesNotContain("Zepra");
+  }
+
+  @Test
+  public void testDetectWebEntitiesGcs() throws Exception {
+    // Act
+    String[] args = {"web-entities", "gs://" + BUCKET + "/vision/landmark.jpg"};
+    Detect.argsHelper(args, out);
+
+    String got = bout.toString();
+    assertThat(got).contains("Description");
+  }
+
+  @Test
+  public void testDetectWebEntitiesIncludeGeoResults() throws Exception {
+    // Act
+    String[] args = {"web-entities-include-geo", "./resources/city.jpg"};
+    Detect.argsHelper(args, out);
+
+    // Assert
+    String got = bout.toString();
+    // Note: entities and labels can change over time.
+    assertThat(got).doesNotContain("Error");
+  }
+
+  @Test
+  public void testDetectWebEntitiesIncludeGeoResultsGcs() throws Exception {
+    // Act
+    String[] args = {"web-entities-include-geo", "gs://" + BUCKET + "/vision/landmark.jpg"};
+    Detect.argsHelper(args, out);
+
+    String got = bout.toString();
+    assertThat(got).contains("Description");
   }
 
   @Test
@@ -286,6 +337,7 @@ public class DetectIT {
     String got = bout.toString();
     assertThat(got).contains("After preparation is complete, the ");
     assertThat(got).contains("37%");
+    assertThat(got).contains("Word text: class (confidence:");
   }
 
   @Test
@@ -298,5 +350,27 @@ public class DetectIT {
     String got = bout.toString();
     assertThat(got).contains("After preparation is complete, the ");
     assertThat(got).contains("37%");
+    assertThat(got).contains("Word text: class (confidence:");
+  }
+
+  @Test
+  public void testDetectDocumentsGcs() throws Exception {
+    // Act
+    String[] args = {"ocr", "gs://" + BUCKET + "/vision/HodgeConj.pdf",
+        "gs://" + BUCKET + "/" + OUTPUT_PREFIX + "/"};
+    Detect.argsHelper(args, out);
+
+    // Assert
+    String got = bout.toString();
+    assertThat(got).contains("HODGE'S GENERAL CONJECTURE");
+
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+
+    Page<Blob> blobs = storage.list(BUCKET, BlobListOption.currentDirectory(),
+        BlobListOption.prefix(OUTPUT_PREFIX + "/"));
+
+    for (Blob blob : blobs.iterateAll()) {
+      blob.delete();
+    }
   }
 }

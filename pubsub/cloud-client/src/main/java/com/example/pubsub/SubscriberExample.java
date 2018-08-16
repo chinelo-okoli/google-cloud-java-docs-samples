@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,8 +22,8 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsub.v1.Subscriber;
+import com.google.pubsub.v1.ProjectSubscriptionName;
 import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.SubscriptionName;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -47,12 +47,13 @@ public class SubscriberExample {
   public static void main(String... args) throws Exception {
     // set subscriber id, eg. my-sub
     String subscriptionId = args[0];
-    SubscriptionName subscriptionName = SubscriptionName.create(PROJECT_ID, subscriptionId);
+    ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(
+        PROJECT_ID, subscriptionId);
     Subscriber subscriber = null;
     try {
       // create a subscriber bound to the asynchronous message receiver
       subscriber =
-          Subscriber.defaultBuilder(subscriptionName, new MessageReceiverExample()).build();
+          Subscriber.newBuilder(subscriptionName, new MessageReceiverExample()).build();
       subscriber.startAsync().awaitRunning();
       // Continue to listen to messages
       while (true) {

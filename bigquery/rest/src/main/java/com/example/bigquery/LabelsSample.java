@@ -29,7 +29,6 @@ import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.Key;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -38,7 +37,7 @@ import java.util.Map;
 /** Sample demonstrating labeling a BigQuery dataset or table. */
 public class LabelsSample {
 
-  // [START label_dataset]
+  // [START bigquery_label_dataset]
   static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
   static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -106,9 +105,9 @@ public class LabelsSample {
         "Updated label \"%s\" with value \"%s\"\n",
         labelKey, responseDataset.getLabels().get(labelKey));
   }
-  // [END label_dataset]
+  // [END bigquery_label_dataset]
 
-  // [START label_table]
+  // [START bigquery_label_table]
   public static class Table {
     @Key private Map<String, String> labels;
 
@@ -179,7 +178,7 @@ public class LabelsSample {
         "Updated label \"%s\" with value \"%s\"\n",
         labelKey, responseTable.getLabels().get(labelKey));
   }
-  // [END label_table]
+  // [END bigquery_label_table]
 
   public static void printUsage() {
     System.err.println("Command expects 4 or 5 arguments:");

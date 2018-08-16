@@ -1,18 +1,18 @@
 /*
-  Copyright 2016, Google, Inc.
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
+ * Copyright 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.example.pubsub;
 
@@ -21,8 +21,8 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.pubsub.v1.TopicAdminClient;
-import com.google.pubsub.v1.SubscriptionName;
-import com.google.pubsub.v1.TopicName;
+import com.google.pubsub.v1.ProjectSubscriptionName;
+import com.google.pubsub.v1.ProjectTopicName;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -49,6 +49,7 @@ public class QuickStartIT {
   private String projectId = ServiceOptions.getDefaultProjectId();
   private String topicId = formatForTest("my-topic");
   private String subscriptionId = formatForTest("my-sub");
+  private int messageCount = 5;
 
   class SubscriberRunnable implements Runnable {
 
@@ -104,9 +105,9 @@ public class QuickStartIT {
 
     bout.reset();
     // publish messages
-    PublisherExample.main(topicId);
+    PublisherExample.main(topicId, String.valueOf(messageCount));
     String[] messageIds = bout.toString().split("\n");
-    assertThat(messageIds).hasLength(PublisherExample.MESSAGE_COUNT);
+    assertThat(messageIds).hasLength(messageCount);
 
     bout.reset();
     // receive messages
@@ -132,7 +133,7 @@ public class QuickStartIT {
 
   private void deleteTestTopic() throws Exception {
     try (TopicAdminClient topicAdminClient = TopicAdminClient.create()) {
-      topicAdminClient.deleteTopic(TopicName.create(projectId, topicId));
+      topicAdminClient.deleteTopic(ProjectTopicName.of(projectId, topicId));
     } catch (IOException e) {
       System.err.println("Error deleting topic " + e.getMessage());
     }
@@ -141,7 +142,7 @@ public class QuickStartIT {
   private void deleteTestSubscription() throws Exception {
     try (SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create()) {
       subscriptionAdminClient.deleteSubscription(
-          SubscriptionName.create(projectId, subscriptionId));
+          ProjectSubscriptionName.of(projectId, subscriptionId));
     } catch (IOException e) {
       System.err.println("Error deleting subscription " + e.getMessage());
     }
